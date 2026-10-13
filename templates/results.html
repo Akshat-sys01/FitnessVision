@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Workout Results - FitnessVision{% endblock %}
+
+{% block content %}
+<div class="results-container">
+  <div class="results-header">
+    <div class="badge badge-green" style="margin-bottom: 0.75rem;">Session Completed</div>
+    <h1 style="font-size: 2.8rem; margin-bottom: 0.5rem;">Workout Summary</h1>
+    <p style="color: var(--text-secondary); font-size: 1.05rem;">
+      {% if session %}
+        Here is how you performed during your <strong>{{ session.exercise_name }}</strong> session.
+      {% else %}
+        Session completed. Check your technique statistics below.
+      {% endif %}
+    </p>
+  </div>
+
+  <!-- Key Metrics Grid -->
+  <div class="results-grid">
+    <div class="result-stat-card">
+      <div class="result-stat-value">
+        {% if session %}{{ session.repetition_count }}{% else %}0{% endif %}
+      </div>
+      <div class="result-stat-label">Valid Repetitions</div>
+    </div>
+
+    <div class="result-stat-card">
+      <div class="result-stat-value" style="color: var(--accent-cyan);">
+        {% if session %}
+          {{ session.duration_seconds|floatformat:0 }}s
+        {% else %}
+          0s
+        {% endif %}
+      </div>
+      <div class="result-stat-label">Total Duration</div>
+    </div>
+
+    <div class="result-stat-card">
+      <div class="result-stat-value" style="color: {% if session and session.errors_detected_count > 0 %}#f87171{% else %}var(--accent-lime){% endif %};">
+        {% if session %}{{ session.errors_detected_count }}{% else %}0{% endif %}
+      </div>
+      <div class="result-stat-label">Errors Detected</div>
+    </div>
+  </div>
+
+  <!-- Detailed Error Breakdown -->
+  <div class="card error-breakdown-card">
+    <h3 style="font-size: 1.3rem; margin-bottom: 0.5rem;">Form Deviation Breakdown</h3>
+    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.25rem;">
+      Specific errors flagged during your movement cycles:
+    </p>
+
+    {% if session and session.error_breakdown %}
+      <div class="error-list">
+        {% for code, count in session.error_breakdown.items %}
+        <div class="error-item">
+          <div>
+            <strong style="color: #ffffff;">{{ code|title|cut:"_" }}</strong>
+            <div style="color: var(--text-secondary); font-size: 0.85rem;">
+              {% if "LEAN" in code %}Chest dropped forward past recommended torso angle.
+              {% elif "DEPTH" in code %}Ascended before thighs reached parallel depth.
+              {% elif "VALGUS" in code %}Knees collapsed inward toward each other.
+              {% elif "DRIFT" in code or "ELBOW" in code %}Elbows flared forward or drifted from torso.
+              {% elif "SWAY" in code %}Torso swung backward to assist lift momentum.
+              {% elif "ASYMMETRIC" in code %}Unequal joint movement between left and right side.
+              {% else %}Posture variation observed during movement.{% endif %}
+            </div>
+          </div>
+          <span class="error-badge-count">{{ count }} flags</span>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: var(--radius-sm); padding: 1.25rem; text-align: center; color: var(--accent-lime-bright);">
+        🎉 Outstanding form! No significant biomechanical errors were detected during your repetitions.
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Coaching Advice -->
+  <div class="card" style="margin-bottom: 2rem;">
+    <h3 style="font-size: 1.2rem; margin-bottom: 0.5rem; color: #ffffff;">Technique Recommendations</h3>
+    <ul style="padding-left: 1.2rem; font-size: 0.92rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.5rem;">
+      <li><strong>Consistency over speed:</strong> Prioritize controlled tempo over fast repetitions.</li>
+      <li><strong>Full Range of Motion:</strong> Ensure your joints reach the full starting and turnaround positions to train muscles through their natural mechanics.</li>
+      <li><strong>Core Bracing:</strong> Keep your torso steady and avoid swinging to maintain spinal stability.</li>
+    </ul>
+  </div>
+
+  <!-- Medical Disclaimer -->
+  <div class="medical-disclaimer">
+    <strong>Health & Safety Notice:</strong> FitnessVision is an educational tool utilizing geometric computer vision heuristics for exercise movement awareness. It is not a medical device, diagnosis system, or replacement for physical therapy or professional trainer supervision. Always stop exercising immediately if you feel pain, strain, or dizziness.
+  </div>
+
+  <!-- Action Buttons -->
+  <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+    <a href="{% url 'exercise_selection' %}" class="btn btn-primary" style="padding: 0.85rem 2rem;">
+      Start Another Exercise
+    </a>
+    <a href="{% url 'home' %}" class="btn btn-secondary" style="padding: 0.85rem 2rem;">
+      Back to Home
+    </a>
+  </div>
+</div>
+{% endblock %}

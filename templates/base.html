@@ -1,0 +1,59 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}FitnessVision - AI Exercise Posture Analysis & Rep Tracking{% endblock %}</title>
+  <meta name="description" content="AI-powered fitness exercise analysis and posture correction system using computer vision. Track squats and bicep curls in real time.">
+  
+  <!-- Modern Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Core Design System CSS -->
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="{% url 'home' %}" class="logo">
+        <div class="logo-badge">FV</div>
+        <span class="brand-font">FitnessVision</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="{% url 'home' %}">Home</a></li>
+        <li><a href="{% url 'exercise_selection' %}">Exercises</a></li>
+        <li><a href="{% url 'results' %}">Session Summary</a></li>
+        <li><a href="{% url 'exercise_selection' %}" class="nav-cta">Start Workout</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Main View Container -->
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Modern Tech Footer -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div>
+        <strong style="color: #ffffff;">FitnessVision</strong> &copy; 2026 &bull; AI-Powered Biomechanical Analysis System
+      </div>
+      <div class="footer-tech">
+        <span class="tech-pill">Django 4.2</span>
+        <span class="tech-pill">MediaPipe BlazePose</span>
+        <span class="tech-pill">OpenCV</span>
+        <span class="tech-pill">Geometric Kinematics</span>
+      </div>
+    </div>
+  </footer>
+
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Workout: {{ exercise.name }} - FitnessVision{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <a href="{% url 'exercise_selection' %}" style="color: var(--text-muted); font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.3rem; margin-bottom: 0.3rem;">
+      &larr; Back to Exercises
+    </a>
+    <h1 style="font-size: 2.2rem;">{{ exercise.name }}</h1>
+  </div>
+  <div style="display: flex; gap: 0.5rem; align-items: center;">
+    <div class="badge badge-green">{{ exercise.difficulty }}</div>
+    <div class="badge badge-cyan">Session Token: {{ session_token|slice:":8" }}</div>
+  </div>
+</div>
+
+<div class="workout-container">
+  <!-- Left Column: Video & Pose Skeleton Viewport -->
+  <div>
+    <div class="viewport-card">
+      <!-- Live Video Element -->
+      <video id="webcam-video" playsinline muted></video>
+      <!-- Skeleton Overlay Canvas -->
+      <canvas id="pose-canvas"></canvas>
+
+      <!-- Camera Status Badge -->
+      <div class="camera-overlay-badge">
+        <div id="status-dot" class="status-dot"></div>
+        <span id="camera-status-text">Camera Standby</span>
+      </div>
+
+      <!-- Placeholder / Initial Start State -->
+      <div id="viewport-placeholder" class="viewport-placeholder">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">📹</div>
+        <h3 style="margin-bottom: 0.5rem;">Ready To Begin {{ exercise.name }}?</h3>
+        <p style="color: var(--text-secondary); max-width: 440px; font-size: 0.95rem; margin-bottom: 1.5rem;">
+          Click "Start Workout" below to enable camera access. Ensure your body is well-lit and fully visible in frame.
+        </p>
+        <button id="btn-start-placeholder" class="btn btn-primary" onclick="document.getElementById('btn-start-workout').click()">
+          Enable Camera & Start
+        </button>
+      </div>
+    </div>
+
+    <!-- Workout Controls Bar -->
+    <div class="controls-bar">
+      <button id="btn-start-workout" class="btn btn-primary" style="flex: 1;">
+        ▶ Start Workout
+      </button>
+      <button id="btn-pause-workout" class="btn btn-secondary" style="display: none; flex: 1;">
+        ⏸ Pause Workout
+      </button>
+      <button id="btn-resume-workout" class="btn btn-primary" style="display: none; flex: 1;">
+        ▶ Resume Workout
+      </button>
+      <button id="btn-end-workout" class="btn btn-danger" style="display: none;">
+        ⏹ End Workout
+      </button>
+    </div>
+
+    <!-- Quick Form Cues -->
+    <div class="card" style="margin-top: 1.5rem; padding: 1.25rem;">
+      <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--accent-lime-bright);">Exercise Form Reminders</h4>
+      <ul style="padding-left: 1.2rem; font-size: 0.88rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.35rem;">
+        {% for cue in exercise.execution_cues %}
+        <li>{{ cue }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <!-- Right Column: Live HUD Telemetry & Biomechanics -->
+  <div class="telemetry-card">
+    <!-- Repetition Counter Display -->
+    <div class="rep-display">
+      <div class="rep-label">Valid Repetitions</div>
+      <div id="rep-count-val" class="rep-number">0</div>
+      <div>
+        <span id="phase-badge" class="phase-tag">STANDBY</span>
+      </div>
+    </div>
+
+    <!-- Posture Status & Real-Time Feedback -->
+    <div id="status-banner" class="status-banner warning">
+      <div class="status-icon">!</div>
+      <div class="status-content">
+        <h4 id="status-title">Camera Not Started</h4>
+        <p id="feedback-text">Press "Start Workout" to begin exercise analysis.</p>
+      </div>
+    </div>
+
+    <!-- Real-time Joint Biomechanics Gauges -->
+    <div class="card" style="padding: 1.25rem;">
+      <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem;">
+        Live Kinematics
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-item">
+          <div id="primary-angle-label" class="metric-name">
+            {% if exercise.slug == 'squat' %}Knee Angle{% else %}Elbow Angle{% endif %}
+          </div>
+          <div id="primary-angle-val" class="metric-value">--</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-name">Torso Tilt</div>
+          <div id="torso-inc-val" class="metric-value">--</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-name">L/R Asymmetry</div>
+          <div id="symmetry-val" class="metric-value">--</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-name">Tracking Status</div>
+          <div id="tracking-status-val" class="metric-value" style="font-size: 1.1rem; color: var(--accent-lime);">ACTIVE</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Session Duration Bar -->
+    <div class="session-info-bar">
+      <span>Duration: <strong id="session-timer-val" style="color: #ffffff;">00:00</strong></span>
+      <span>Engine: <strong style="color: var(--accent-cyan);">Hybrid BlazePose</strong></span>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- MediaPipe Pose CDN bundle for zero-latency in-browser pose extraction -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
+<!-- Application Scripts -->
+<script src="{% static 'js/camera.js' %}"></script>
+<script src="{% static 'js/workout.js' %}"></script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const controller = new WorkoutSessionController({
+      exerciseSlug: '{{ exercise.slug }}',
+      sessionToken: '{{ session_token }}',
+      useServerDetector: false,
+    });
+  });
+</script>
+{% endblock %}

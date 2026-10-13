@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}FitnessVision - Train Smarter. Move Better.{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero">
+  <div class="badge badge-green">AI-Powered Biomechanics Engine</div>
+  <h1>Train Smarter. <br><span class="hero-highlight">Move Better.</span></h1>
+  <p class="hero-desc">
+    FitnessVision turns your standard webcam into an intelligent training partner.
+    Analyze joint angles in real time, detect posture deviations, track full repetitions,
+    and build safer exercise habits without expensive gym hardware.
+  </p>
+  <div class="hero-buttons">
+    <a href="{% url 'exercise_selection' %}" class="btn btn-primary">
+      Start Training &rarr;
+    </a>
+    <a href="{% url 'exercise_selection' %}" class="btn btn-secondary">
+      Explore Exercises
+    </a>
+  </div>
+</section>
+
+<!-- Feature Showcase -->
+<section class="features-section">
+  <h2 class="section-title">Engineered For Movement Quality</h2>
+  <p class="section-subtitle">
+    Combining computer vision with exercise biomechanics to provide instant feedback as you train.
+  </p>
+
+  <div class="features-grid">
+    <!-- Feature 1 -->
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <h3>AI Pose Detection</h3>
+      <p>
+        Tracks 33 body keypoints at sub-pixel accuracy using pretrained MediaPipe BlazePose models,
+        isolating crucial movement joints without wearable markers.
+      </p>
+    </div>
+
+    <!-- Feature 2 -->
+    <div class="feature-card">
+      <div class="feature-icon">🔄</div>
+      <h3>Smart Rep Counting</h3>
+      <p>
+        State-machine progression tracks entire movement cycles (Descent, Bottom, Ascent) to prevent
+        double-counting and ignore shallow or fluctuating false reps.
+      </p>
+    </div>
+
+    <!-- Feature 3 -->
+    <div class="feature-card">
+      <div class="feature-icon">📐</div>
+      <h3>Posture Error Detection</h3>
+      <p>
+        Geometric rule engines evaluate real-time joint angles, knee valgus collapse, torso inclination,
+        and elbow displacement against sports-science thresholds.
+      </p>
+    </div>
+
+    <!-- Feature 4 -->
+    <div class="feature-card">
+      <div class="feature-icon">🎯</div>
+      <h3>Instant Feedback</h3>
+      <p>
+        High-visibility coaching cues guide your technique mid-rep. Get actionable guidance
+        when your form drifts and celebrate clean, balanced repetitions.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="how-section">
+  <h2 class="section-title">How FitnessVision Works</h2>
+  <p class="section-subtitle">No special setup required. Just your browser and a camera.</p>
+
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-num">01</div>
+      <h4>Select Your Exercise</h4>
+      <p>Choose from supported exercises like Bodyweight Squats or Bicep Curls tailored for beginners and solo lifters.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">02</div>
+      <h4>Enable Your Webcam</h4>
+      <p>Position yourself so relevant joints are visible in the camera frame. Visual guides help you adjust framing.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">03</div>
+      <h4>Train & Review</h4>
+      <p>Receive real-time feedback as you move. Finish your session to view a comprehensive breakdown of reps, errors, and technique.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Ready To Train Callout -->
+<section class="card" style="margin-top: 3rem; text-align: center; background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(6, 182, 212, 0.05)); border-color: rgba(16, 185, 129, 0.25);">
+  <h3 style="font-size: 2rem; margin-bottom: 0.75rem;">Ready To Perfect Your Technique?</h3>
+  <p style="color: var(--text-secondary); max-width: 550px; margin: 0 auto 1.5rem;">
+    Start an interactive workout right now. Experience zero-latency pose estimation and smart rep feedback.
+  </p>
+  <a href="{% url 'exercise_selection' %}" class="btn btn-primary" style="font-size: 1.05rem; padding: 0.85rem 2rem;">
+    Launch Exercise Studio &rarr;
+  </a>
+</section>
+{% endblock %}

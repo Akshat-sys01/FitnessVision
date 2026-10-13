@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}FitnessVision - Select Exercise{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2.5rem; text-align: center;">
+  <div class="badge badge-cyan" style="margin-bottom: 1rem;">Movement Library</div>
+  <h1 style="font-size: 2.8rem; margin-bottom: 0.5rem;">Choose Your Exercise</h1>
+  <p style="color: var(--text-secondary); max-width: 600px; margin: 0 auto;">
+    Select an exercise to enter the live AI analysis studio. Your webcam will track joint angles and rep completion.
+  </p>
+</div>
+
+<div class="exercise-grid">
+  {% for ex in exercises %}
+  <div class="card exercise-card">
+    <div>
+      <div class="exercise-header">
+        <div>
+          <div class="badge badge-green" style="margin-bottom: 0.5rem;">{{ ex.difficulty }}</div>
+          <h2>{{ ex.name }}</h2>
+        </div>
+        <div class="exercise-icon-box">
+          {% if ex.slug == 'squat' %}🦵{% else %}💪{% endif %}
+        </div>
+      </div>
+
+      <div class="exercise-tagline">{{ ex.tagline }}</div>
+      <p class="exercise-desc">{{ ex.description }}</p>
+
+      <!-- Target Muscles -->
+      <div style="margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">
+        Target Muscles
+      </div>
+      <div class="muscle-tags">
+        {% for muscle in ex.target_muscles %}
+        <span class="muscle-tag">{{ muscle }}</span>
+        {% endfor %}
+      </div>
+
+      <!-- Execution Tips Preview -->
+      <div class="instructions-preview">
+        <h5>Key Execution Cues</h5>
+        <ul>
+          {% for cue in ex.execution_cues|slice:":3" %}
+          <li>{{ cue }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <div>
+      <a href="{% url 'workout' ex.slug %}" class="btn btn-primary" style="width: 100%; font-size: 1rem;">
+        Start {{ ex.name }} &rarr;
+      </a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Guidance info banner -->
+<div class="card" style="margin-top: 3rem; background: rgba(0, 0, 0, 0.35); border-left: 4px solid var(--accent-cyan);">
+  <h4 style="margin-bottom: 0.4rem; color: #ffffff;">💡 Setup Recommendation</h4>
+  <p style="color: var(--text-secondary); font-size: 0.92rem;">
+    For optimal pose tracking results, ensure good room lighting, wear clothes that contrast with your background,
+    and place your camera about 2 to 3 meters (6 to 10 feet) away so your required joints remain visible throughout the full range of motion.
+  </p>
+</div>
+{% endblock %}
