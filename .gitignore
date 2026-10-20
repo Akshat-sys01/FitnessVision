@@ -46,3 +46,16 @@ ENV/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Ignore all image files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.bmp
+*.svg
+*.ico
+*.tif
+*.tiff
+*.avif
