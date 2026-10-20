@@ -1,0 +1,40 @@
+============================================================
+MPII DATASET EXERCISE FILTERING SUMMARY REPORT
+============================================================
+
+Mode: all
+Total matching images: 2270
+Images verified on disk: 2270
+Total annotated persons: 3653
+Total annotated joints: 56796
+
+BREAKDOWN BY ACTIVITY CAPTION:
+------------------------------------------------------------
+  conditioning exercise -> yoga, Power               :  287 images
+  conditioning exercise -> rowing, stationary        :  165 images
+  conditioning exercise -> video exercise workouts, TV conditioning programs :  158 images
+  sports -> rope skipping, general                   :  156 images
+  conditioning exercise -> circuit training          :  147 images
+  conditioning exercise -> resistance training       :  145 images
+  dancing -> aerobic, step                           :  141 images
+  conditioning exercise -> calisthenics              :  119 images
+  conditioning exercise -> bicycling, stationary     :  105 images
+  conditioning exercise -> pilates, general          :   90 images
+  conditioning exercise -> therapeutic exercise ball, Fitball exercise :   89 images
+  dancing -> aerobic, general                        :   80 images
+  conditioning exercise -> stretching, mild          :   65 images
+  conditioning exercise -> home exercise, general    :   61 images
+  conditioning exercise -> yoga, Nadisodhana         :   60 images
+  sports -> gymnastics, general                      :   53 images
+  water activities -> water aerobics, water calisthenics :   50 images
+  conditioning exercise -> health club exerceise classes :   48 images
+  conditioning exercise -> slide board exercise, general :   45 images
+  sports -> boxing, punching bag                     :   35 images
+  conditioning exercise -> slimnastics, jazzercise   :   35 images
+  conditioning exercise -> ski machine, general      :   33 images
+  conditioning exercise -> upper body exercise, stationary bicycle - Airdyne (arms only) 40 rpm, moderate :   32 images
+  conditioning exercise -> weight lifting, power lifting :   31 images
+  conditioning exercise -> native New Zealander physical activities :   22 images
+  conditioning exercise -> Elliptical trainer, moderate effort :   17 images
+  conditioning exercise -> teaching exercise class   :    1 images
+------------------------------------------------------------
