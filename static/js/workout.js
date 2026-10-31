@@ -6,6 +6,14 @@
 
 class WorkoutSessionController {
   constructor(config) {
+    setTimeout(() => {
+        const test = new SpeechSynthesisUtterance(
+            "Fitness Vision audio test. Your audio is working."
+        );
+        test.lang = "en-US";
+        window.speechSynthesis.speak(test);
+    }, 1000);
+
     this.exerciseSlug = config.exerciseSlug || 'squat';
     this.sessionToken = config.sessionToken || 'default_session';
     this.useServerDetector = config.useServerDetector || false;
@@ -24,6 +32,12 @@ class WorkoutSessionController {
     this.statusBannerEl = document.getElementById('status-banner');
     this.statusTitleEl = document.getElementById('status-title');
     this.feedbackTextEl = document.getElementById('feedback-text');
+
+    this.lastSpokenFeedback = '';
+    this.lastAnnouncedRep = 0;
+    this.exerciseCompleted = false;
+    this.speechEnabled = true;
+
     this.primaryAngleValEl = document.getElementById('primary-angle-val');
     this.primaryAngleLabelEl = document.getElementById('primary-angle-label');
     this.torsoIncValEl = document.getElementById('torso-inc-val');
@@ -46,6 +60,9 @@ class WorkoutSessionController {
     this.timerInterval = null;
     this.elapsedSeconds = 0;
     this.latestRepCount = 0;
+
+    this.lastAnnouncedRep = 0;
+    this.exerciseCompleted = false;
 
     // Keypoint connections mapping for client rendering
     this.connections = [
@@ -442,6 +459,7 @@ class WorkoutSessionController {
     const count = data.repetition_count || 0;
     if (count !== this.latestRepCount) {
       this.latestRepCount = count;
+      this.announceRepProgress(count);
       if (this.repCountEl) {
         this.repCountEl.textContent = count;
         this.repCountEl.classList.add('bump');
@@ -492,11 +510,62 @@ class WorkoutSessionController {
     }
   }
 
+  announceRepProgress(repCount) {
+    if (repCount <= this.lastAnnouncedRep) return;
+
+    this.lastAnnouncedRep = repCount;
+
+    let message = `${repCount} repetitions completed.`;
+
+    if (repCount === 5) {
+        message = "Halfway there! Five more repetitions to go!";
+    } else if (repCount === 9) {
+        message = "Just one more repetition! You can do it!";
+    } else if (repCount >= 10 && !this.exerciseCompleted) {
+        this.exerciseCompleted = true;
+        message = "Excellent! All 10 repetitions completed. Exercise complete. Great work!";
+    } else if (repCount > 10) {
+        return;
+    } else if (repCount === 1) {
+        message = "First repetition completed. Good start!";
+    }
+
+    if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+
+        const speech = new SpeechSynthesisUtterance(message);
+        speech.lang = "en-US";
+        speech.rate = 1;
+        speech.pitch = 1;
+
+        window.speechSynthesis.speak(speech);
+    }
+  }  
+
   updateStatusBanner(statusClass, title, message) {
     if (!this.statusBannerEl) return;
     this.statusBannerEl.className = `status-banner ${statusClass}`;
     if (this.statusTitleEl) this.statusTitleEl.textContent = title;
     if (this.feedbackTextEl) this.feedbackTextEl.textContent = message;
+
+      // Speak only when the feedback message changes
+    if (
+        this.speechEnabled &&
+        message &&
+        message !== this.lastSpokenFeedback &&
+        'speechSynthesis' in window
+    ) {
+        this.lastSpokenFeedback = message;
+
+        window.speechSynthesis.cancel();
+
+        const speech = new SpeechSynthesisUtterance(message);
+        speech.lang = 'en-US';
+        speech.rate = 1;
+        speech.pitch = 1;
+
+        window.speechSynthesis.speak(speech);
+    }
 
     const iconEl = this.statusBannerEl.querySelector('.status-icon');
     if (iconEl) {
