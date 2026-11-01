@@ -1,0 +1,16 @@
+
+FITNESSVISION - CLEANED DATASET REPORT
+
+Original images: 2270
+Excluded images without persons: 77
+
+Images retained: 2193
+Images copied: 2193
+
+Total annotated persons: 3649
+
+Image dimensions: 512 x 512
+Preprocessing: Direct letterboxing
+
+Source dataset: letterboxed_512
+Output dataset: cleaned_dataset_folder
