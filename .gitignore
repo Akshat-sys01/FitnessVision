@@ -59,3 +59,4 @@ Thumbs.db
 *.tif
 *.tiff
 *.avif
+*.npz   
