@@ -60,7 +60,8 @@ def conv_block(x: tf.Tensor, filters: int, name: str) -> tf.Tensor:
 
 def build_pose_model(
     input_shape: Tuple[int, int, int] = (256, 256, 3),
-    num_joints: int = 16
+    num_joints: int = 16,
+    trainable_backbone: bool = True
 ) -> keras.Model:
     """
     Constructs the ResNet-50 Pose Estimation Network.
@@ -73,7 +74,7 @@ def build_pose_model(
         weights="imagenet",
         input_tensor=inputs
     )
-    base_resnet.trainable = True  # Fine-tune the backbone end-to-end
+    base_resnet.trainable = trainable_backbone  # Fine-tune the backbone end-to-end
 
     # 2. Extract Multi-Scale Feature Maps
     skip_64 = base_resnet.get_layer("conv2_block3_out").output  # (64x64, 256 ch)

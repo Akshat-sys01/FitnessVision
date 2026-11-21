@@ -171,7 +171,7 @@ def main():
     val_ds = create_tf_dataset(val_records, DATASET_DIR, batch_size=BATCH_SIZE, is_training=False)
 
     # Instantiate Model
-    print("\nConstructing MobileNetV2 + Multi-scale FPN Decoder in TensorFlow...")
+    print("\nConstructing ResNet-50 + Multi-scale FPN Decoder in TensorFlow...")
     model = build_pose_model(input_shape=(256, 256, 3), num_joints=16, trainable_backbone=True)
     model.summary()
 
