@@ -60,3 +60,17 @@ Thumbs.db
 *.tiff
 *.avif
 *.npz   
+
+
+# Large training datasets and model weights
+datasets/
+training_outputs/
+training_outputs_v2/
+*.zip
+*.tar
+*.tar.gz
+*.keras
+*.pth
+*.h5
+*.mat
+*.data*

@@ -10,7 +10,8 @@ import tensorflow as tf
 
 from data_loader import val_dataset, NUM_JOINTS
 
-MODEL_PATH = Path("training_outputs") / "best_pose_model.keras"
+MODEL_PATH = Path("training_outputs_v2") / "best_pose_model_v2.keras"
+
 PCK_THRESHOLD = 3.0
 
 JOINT_NAMES = [
