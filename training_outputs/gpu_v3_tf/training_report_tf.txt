@@ -1,0 +1,12 @@
+FitnessVision TensorFlow (Keras 3) Training Report
+==================================================
+Framework: TensorFlow 2.10.0 / Keras
+Total Samples: 19,919 (Train: 15,935, Val: 3,984)
+Epochs Completed: 100/100
+Best Validation PCK@3: 85.44%
+Best Validation Loss: 0.001062
+Total Duration: 881.22 minutes
+Best Model File: C:\FitnessVision\training_outputs\gpu_v3_tf\best_pose_model_tf.keras
+Latest Model File: C:\FitnessVision\training_outputs\gpu_v3_tf\latest_pose_model_tf.keras
+History File: C:\FitnessVision\training_outputs\gpu_v3_tf\training_history_tf.json
+Stuck Incidents Detected: 0

@@ -58,8 +58,8 @@ LATEST_MODEL_PATH = OUTPUT_DIR / "latest_pose_model_tf.keras"
 
 BATCH_SIZE = 16
 NUM_EPOCHS = 100
-MAX_TRAINING_SECONDS = 6.0 * 3600  # Strict 6-hour ceiling
-BATCH_TIMEOUT_SECONDS = 90.0       # Stuck detection per batch
+MAX_TRAINING_SECONDS = 15.0 * 3600  # Strict 15-hour ceiling
+BATCH_TIMEOUT_SECONDS = 90.0        # Stuck detection per batch
 INITIAL_LR = 5e-4
 MIN_LR = 1e-6
 WEIGHT_DECAY = 1e-4
@@ -183,10 +183,9 @@ def main():
         alpha=MIN_LR / INITIAL_LR
     )
 
-    optimizer = tf.keras.optimizers.AdamW(
+    optimizer = tf.keras.optimizers.Adam(
         learning_rate=lr_schedule,
-        weight_decay=WEIGHT_DECAY,
-        clipnorm=5.0  # Global gradient norm clipping
+        clipnorm=5.0
     )
 
     loss_fn = MaskedHeatmapMSELoss()

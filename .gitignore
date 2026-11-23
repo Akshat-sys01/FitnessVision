@@ -64,7 +64,10 @@ Thumbs.db
 
 # Large training datasets and model weights
 datasets/
-training_outputs/
+training_outputs/**/*.keras
+training_outputs/**/*.pth
+training_outputs/**/*.h5
+training_outputs/**/*.data*
 training_outputs_v2/
 *.zip
 *.tar
