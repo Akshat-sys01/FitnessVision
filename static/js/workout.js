@@ -31,12 +31,12 @@ class WorkoutSessionController {
     this.exerciseCompleted = false;
     this.speechEnabled = true;
 
+    // Pre-initialize and warm up voices
     if ('speechSynthesis' in window) {
-      setTimeout(() => {
-        const test = new SpeechSynthesisUtterance('Fitness Vision audio test. Your audio is working.');
-        test.lang = 'en-US';
-        window.speechSynthesis.speak(test);
-      }, 1000);
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+      window.speechSynthesis.getVoices();
     }
     this.primaryAngleValEl = document.getElementById('primary-angle-val');
     this.primaryAngleLabelEl = document.getElementById('primary-angle-label');
@@ -98,10 +98,48 @@ class WorkoutSessionController {
   }
 
   initEventListeners() {
-    if (this.btnStart) this.btnStart.addEventListener('click', () => this.startWorkout());
+    if (this.btnStart) this.btnStart.addEventListener('click', () => {
+      this.unlockSpeech();
+      this.startWorkout();
+    });
     if (this.btnPause) this.btnPause.addEventListener('click', () => this.pauseWorkout());
-    if (this.btnResume) this.btnResume.addEventListener('click', () => this.resumeWorkout());
+    if (this.btnResume) this.btnResume.addEventListener('click', () => {
+      this.unlockSpeech();
+      this.resumeWorkout();
+    });
     if (this.btnEnd) this.btnEnd.addEventListener('click', () => this.endWorkout());
+  }
+
+  unlockSpeech() {
+    if (!('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.resume();
+      if (!this._speechUnlocked) {
+        this._speechUnlocked = true;
+        const test = new SpeechSynthesisUtterance('Fitness Vision audio enabled.');
+        test.lang = 'en-US';
+        test.rate = 1;
+        test.pitch = 1;
+        window.speechSynthesis.speak(test);
+      }
+    } catch (e) {
+      console.warn('Speech unlock error:', e);
+    }
+  }
+
+  speak(text) {
+    if (!this.speechEnabled || !text || !('speechSynthesis' in window)) return;
+    try {
+      window.speechSynthesis.resume();
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      utterance.rate = 1;
+      utterance.pitch = 1;
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.warn('Speech error:', e);
+    }
   }
 
   onCameraStatus(status, message) {
@@ -636,14 +674,7 @@ class WorkoutSessionController {
       return;
     }
 
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const speech = new SpeechSynthesisUtterance(message);
-      speech.lang = 'en-US';
-      speech.rate = 1;
-      speech.pitch = 1;
-      window.speechSynthesis.speak(speech);
-    }
+    this.speak(message);
   }
 
   updateStatusBanner(statusClass, title, message) {
@@ -653,19 +684,9 @@ class WorkoutSessionController {
     if (this.feedbackTextEl) this.feedbackTextEl.textContent = message;
 
     // Speak only when the feedback message changes
-    if (
-      this.speechEnabled &&
-      message &&
-      message !== this.lastSpokenFeedback &&
-      'speechSynthesis' in window
-    ) {
+    if (message && message !== this.lastSpokenFeedback) {
       this.lastSpokenFeedback = message;
-      window.speechSynthesis.cancel();
-      const speech = new SpeechSynthesisUtterance(message);
-      speech.lang = 'en-US';
-      speech.rate = 1;
-      speech.pitch = 1;
-      window.speechSynthesis.speak(speech);
+      this.speak(message);
     }
 
     const iconEl = this.statusBannerEl.querySelector('.status-icon');
