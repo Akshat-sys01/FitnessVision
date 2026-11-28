@@ -1,0 +1,34 @@
+FitnessVision Phase 3 Evaluation Report
+==========================================
+Model: C:\FitnessVision\training_outputs\phase3_full_mpii\fitnessvision_pose_v2.keras
+Validation samples: 4,980
+Input: 256x256x3
+Output: 64x64x16
+Visible joint targets: 51,252
+Masked heatmap MSE: 2.3531024561e-03
+PCK@3 heatmap pixels: 38.79%
+Inference time (all validation samples): 183.16 seconds
+
+Per-joint PCK@3:
+  Right ankle: 39.57%
+  Right knee: 29.72%
+  Right hip: 35.36%
+  Left hip: 34.70%
+  Left knee: 31.07%
+  Left ankle: 42.19%
+  Pelvis: 54.09%
+  Thorax: 71.58%
+  Upper neck: nan%
+  Head top: nan%
+  Right wrist: 24.75%
+  Right elbow: 32.45%
+  Right shoulder: 52.25%
+  Left shoulder: 53.70%
+  Left elbow: 30.09%
+  Left wrist: 27.59%
+
+Visualized samples: 16
+Visualizations: C:\FitnessVision\training_outputs\phase3_full_mpii\visualizations
+
+PCK uses argmax coordinates from target/predicted 64x64 heatmaps;
+only joints with joint_mask=1 are evaluated. Threshold = 3 heatmap pixels.

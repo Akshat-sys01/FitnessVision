@@ -1,0 +1,23 @@
+FitnessVision V2 Training Report
+========================================
+Training samples: 14,939
+Validation samples: 4,980
+Input shape: (256, 256, 3)
+Target heatmap shape: (64, 64, 16)
+Joint supervision: visibility-masked MSE
+Architecture: ImageNet MobileNetV2 encoder + multi-scale decoder
+Backbone: frozen for this initial training run
+Batch size: 4
+Maximum epochs: 30
+Learning rate: 0.0001
+Best validation loss: 0.000001
+Validation PCK@3 heatmap pixels: 38.79%
+Visible validation joint targets: 51,252
+Elapsed time: 555.5 minutes
+Final model: C:\FitnessVision\training_outputs\phase3_full_mpii\fitnessvision_pose_v2.keras
+Best checkpoint: C:\FitnessVision\training_outputs\phase3_full_mpii\checkpoints\best_model.keras
+History: C:\FitnessVision\training_outputs\phase3_full_mpii\training_history.json
+
+Note: PCK@3 uses a fixed 3-pixel threshold on the 64x64 heatmap grid.
+Compare this metric with prior runs only when preprocessing and evaluation
+definitions are identical.

@@ -1,0 +1,159 @@
+﻿FitnessVision
+├── config/
+│   ├── __init__.py
+│   ├── asgi.py
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
+├── Documentation/
+│   ├── ARCHITECTURE.md
+│   └── BIOMECHANICS_RULES.md
+├── exercises/
+│   ├── __init__.py
+│   ├── registry.py
+│   └── repetition_counter.py
+├── main_app/
+│   ├── migrations/
+│   │   ├── __init__.py
+│   │   └── 0001_initial.py
+│   ├── __init__.py
+│   ├── admin.py
+│   ├── apps.py
+│   ├── models.py
+│   ├── session_manager.py
+│   ├── tests.py
+│   ├── urls.py
+│   └── views.py
+├── pose_estimation/
+│   ├── __init__.py
+│   ├── detector.py
+│   ├── keypoints.py
+│   └── visualization.py
+├── posture_analysis/
+│   ├── __init__.py
+│   ├── curl_analysis.py
+│   ├── error_detection.py
+│   ├── feedback.py
+│   ├── geometry.py
+│   └── squat_analysis.py
+├── static/
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       ├── camera.js
+│       └── workout.js
+├── templates/
+│   ├── base.html
+│   ├── exercise_selection.html
+│   ├── home.html
+│   ├── results.html
+│   └── workout.html
+├── tests/
+│   ├── __init__.py
+│   ├── test_django_views.py
+│   ├── test_geometry.py
+│   ├── test_posture_analysis.py
+│   └── test_repetition_counter.py
+├── training/
+│   ├── data_loader.py
+│   ├── evaluate.py
+│   ├── evaluate_phase3_pose_model.py
+│   ├── fitnessvision_model.png
+│   ├── loss.py
+│   ├── mobileNet_train_v2.py
+│   ├── model.py
+│   ├── split_dataset.py
+│   ├── train.py
+│   ├── train_phase3_full_mpii_pose_estimation.py
+│   ├── visualization.py
+│   └── visualize_v2_predictions.py
+├── training_gpu/
+│   ├── datasets.py
+│   ├── datasets_tf.py
+│   ├── models.py
+│   ├── models_tf.py
+│   ├── train.py
+│   ├── train_tf.py
+│   ├── visualize.py
+│   └── visualize_tf.py
+├── training_outputs/
+│   ├── gpu_v3/
+│   │   ├── visualizations/
+│   │   │   ├── v3_sample_01.png
+│   │   │   ├── v3_sample_02.png
+│   │   │   ├── v3_sample_03.png
+│   │   │   ├── v3_sample_04.png
+│   │   │   ├── v3_sample_05.png
+│   │   │   ├── v3_sample_06.png
+│   │   │   ├── v3_sample_07.png
+│   │   │   └── v3_sample_08.png
+│   │   ├── best_pose_model.pth
+│   │   ├── latest_pose_model.pth
+│   │   ├── training_history.json
+│   │   └── training_report.txt
+│   ├── gpu_v3_tf/
+│   │   ├── visualizations/
+│   │   │   ├── tf_sample_01.png
+│   │   │   ├── tf_sample_02.png
+│   │   │   ├── tf_sample_03.png
+│   │   │   ├── tf_sample_04.png
+│   │   │   ├── tf_sample_05.png
+│   │   │   ├── tf_sample_06.png
+│   │   │   ├── tf_sample_07.png
+│   │   │   └── tf_sample_08.png
+│   │   ├── best_pose_model_tf.keras
+│   │   ├── latest_pose_model_tf.keras
+│   │   ├── training_history_tf.json
+│   │   └── training_report_tf.txt
+│   ├── phase3_full_mpii/
+│   │   ├── visualizations/
+│   │   │   ├── prediction_01_person_012375.png
+│   │   │   ├── prediction_02_person_002978.png
+│   │   │   ├── prediction_03_person_003374.png
+│   │   │   ├── prediction_04_person_021512.png
+│   │   │   ├── prediction_05_person_020658.png
+│   │   │   ├── prediction_06_person_019608.png
+│   │   │   ├── prediction_07_person_014949.png
+│   │   │   ├── prediction_08_person_022418.png
+│   │   │   ├── prediction_09_person_022820.png
+│   │   │   ├── prediction_10_person_021198.png
+│   │   │   ├── prediction_11_person_012305.png
+│   │   │   ├── prediction_12_person_002929.png
+│   │   │   ├── prediction_13_person_024760.png
+│   │   │   ├── prediction_14_person_027868.png
+│   │   │   ├── prediction_15_person_022609.png
+│   │   │   ├── prediction_16_person_005447.png
+│   │   │   └── visualization_samples.csv
+│   │   ├── epoch_log.csv
+│   │   ├── evaluation_report.txt
+│   │   ├── fitnessvision_pose_v2.keras
+│   │   ├── training_history.json
+│   │   └── training_report.txt
+│   ├── visualizations/
+│   │   ├── sample_1.png
+│   │   ├── sample_2.png
+│   │   ├── sample_3.png
+│   │   └── sample_4.png
+│   ├── best_pose_model.keras
+│   ├── final_pose_model.keras
+│   ├── training_history.json
+│   └── training_report.txt
+├── training_outputs_v2/
+│   ├── visualizations/
+│   │   ├── v2_sample_01.png
+│   │   ├── v2_sample_02.png
+│   │   ├── v2_sample_03.png
+│   │   ├── v2_sample_04.png
+│   │   ├── v2_sample_05.png
+│   │   ├── v2_sample_06.png
+│   │   ├── v2_sample_07.png
+│   │   └── v2_sample_08.png
+│   ├── best_pose_model_v2.keras
+│   ├── final_pose_model_v2.keras
+│   └── training_history_v2.json
+├── .gitignore
+├── db.sqlite3
+├── manage.py
+├── preprocessing_notes.md
+├── README.md
+└── requirements.txt

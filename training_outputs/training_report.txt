@@ -1,0 +1,13 @@
+FitnessVision V2 Training Report
+========================================
+Training status: FAILED
+Error: Missing annotations: C:\FitnessVision\train_validation_dataset\train\annotations.json
+Elapsed time: 0.0 minutes
+
+Full traceback:
+Traceback (most recent call last):
+  File "c:\FitnessVision\training\train_phase3_full_mpii_pose_estimation.py", line 231, in main
+    train_records = load_records("train")
+  File "c:\FitnessVision\training\train_phase3_full_mpii_pose_estimation.py", line 55, in load_records
+    raise FileNotFoundError(f"Missing annotations: {annotation_path}")
+FileNotFoundError: Missing annotations: C:\FitnessVision\train_validation_dataset\train\annotations.json

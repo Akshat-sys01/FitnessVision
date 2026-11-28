@@ -1,0 +1,17 @@
+validation_record,crop_image,visible_joints,sample_pck_at_3,visualization
+2180,person_012375.jpg,8,37.5,C:\FitnessVision\training_outputs\phase3_full_mpii\visualizations\prediction_01_person_012375.png
+443,person_002978.jpg,12,25.0,C:\FitnessVision\training_outputs\phase3_full_mpii\visualizations\prediction_02_person_002978.png
+468,person_003374.jpg,8,62.5,C:\FitnessVision\training_outputs\phase3_full_mpii\visualizations\prediction_03_person_003374.png
+3661,person_021512.jpg,13,30.76923076923077,C:\FitnessVision\training_outputs\phase3_full_mpii\visualizations\prediction_04_person_021512.png
+3467,person_020658.jpg,12,16.666666666666668,C:\FitnessVision\training_outputs\phase3_full_mpii\visualizations\prediction_05_person_020658.png
+3251,person_019608.jpg,10,20.0,C:\FitnessVision\training_outputs\phase3_full_mpii\visualizations\prediction_06_person_019608.png
+2619,person_014949.jpg,8,50.0,C:\FitnessVision\training_outputs\phase3_full_mpii\visualizations\prediction_07_person_014949.png
+3788,person_022418.jpg,10,70.0,C:\FitnessVision\training_outputs\phase3_full_mpii\visualizations\prediction_08_person_022418.png
+3914,person_022820.jpg,13,53.84615384615385,C:\FitnessVision\training_outputs\phase3_full_mpii\visualizations\prediction_09_person_022820.png
+3572,person_021198.jpg,7,71.42857142857143,C:\FitnessVision\training_outputs\phase3_full_mpii\visualizations\prediction_10_person_021198.png
+2151,person_012305.jpg,7,14.285714285714286,C:\FitnessVision\training_outputs\phase3_full_mpii\visualizations\prediction_11_person_012305.png
+427,person_002929.jpg,12,25.0,C:\FitnessVision\training_outputs\phase3_full_mpii\visualizations\prediction_12_person_002929.png
+4267,person_024760.jpg,13,15.384615384615385,C:\FitnessVision\training_outputs\phase3_full_mpii\visualizations\prediction_13_person_024760.png
+4854,person_027868.jpg,10,10.0,C:\FitnessVision\training_outputs\phase3_full_mpii\visualizations\prediction_14_person_027868.png
+3843,person_022609.jpg,12,91.66666666666667,C:\FitnessVision\training_outputs\phase3_full_mpii\visualizations\prediction_15_person_022609.png
+1001,person_005447.jpg,12,41.666666666666664,C:\FitnessVision\training_outputs\phase3_full_mpii\visualizations\prediction_16_person_005447.png

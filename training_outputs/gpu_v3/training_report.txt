@@ -1,0 +1,13 @@
+FitnessVision GPU Training V3 Report
+=============================================
+Device: NVIDIA GeForce RTX 2050
+CUDA Version: 12.8
+Total Samples: 19,919 (Train: 15,935, Val: 3,984)
+Epochs Completed: 98/100
+Best Validation PCK@3: 81.45%
+Best Validation Loss: 0.001183
+Total Training Duration: 361.98 minutes
+Best Model File: C:\FitnessVision\training_outputs\gpu_v3\best_pose_model.pth
+Latest Model File: C:\FitnessVision\training_outputs\gpu_v3\latest_pose_model.pth
+History File: C:\FitnessVision\training_outputs\gpu_v3\training_history.json
+Stuck Incidents: 0
