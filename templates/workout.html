@@ -131,9 +131,9 @@
 {% block extra_scripts %}
 <!-- MediaPipe Pose CDN bundle for zero-latency in-browser pose extraction -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
-<!-- Application Scripts -->
+<!-- Application Scripts (with cache-busting version query) -->
 <script src="{% static 'js/camera.js' %}"></script>
-<script src="{% static 'js/workout.js' %}"></script>
+<script src="{% static 'js/workout.js' %}?v=16joints_voice"></script>
 
 <script>
   document.addEventListener('DOMContentLoaded', () => {
