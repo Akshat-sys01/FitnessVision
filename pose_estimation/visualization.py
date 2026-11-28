@@ -13,42 +13,133 @@ except ImportError:
 
 from .keypoints import POSE_CONNECTIONS
 
+from typing import Dict, List, Tuple
+import numpy as np
+
+try:
+    import cv2
+except ImportError:
+    cv2 = None
+
+from .keypoints import FITNESSVISION_JOINTS, POSE_CONNECTIONS
+
 
 def draw_skeleton(
     image: np.ndarray,
     keypoints: Dict[str, Dict[str, float]],
     connections: List[Tuple[str, str]] = POSE_CONNECTIONS,
-    point_color: Tuple[int, int, int] = (0, 255, 127),      # Bright Lime Green in BGR
-    line_color: Tuple[int, int, int] = (255, 200, 0),       # Cyan/Blue-gold in BGR
+    point_color: Tuple[int, int, int] = (0, 255, 127),
+    line_color: Tuple[int, int, int] = (255, 200, 0),
     min_visibility: float = 0.5,
+    show_labels: bool = False,
 ) -> np.ndarray:
     """
-    Renders skeleton keypoints and limb lines on an image.
+    Draws ONLY FitnessVision's canonical 16 joints.
+
+    Coordinates are expected to be normalized (0.0 to 1.0).
+    Unexpected landmarks are ignored.
     """
+
     if cv2 is None or image is None or not keypoints:
         return image
 
     h, w = image.shape[:2]
 
-    # Draw connection lines
-    for pt1_name, pt2_name in connections:
-        kp1 = keypoints.get(pt1_name)
-        kp2 = keypoints.get(pt2_name)
-        if kp1 and kp2:
-            if kp1.get("visibility", 0.0) >= min_visibility and kp2.get("visibility", 0.0) >= min_visibility:
-                x1, y1 = int(kp1["x"] * w), int(kp1["y"] * h)
-                x2, y2 = int(kp2["x"] * w), int(kp2["y"] * h)
-                cv2.line(image, (x1, y1), (x2, y2), line_color, 2, cv2.LINE_AA)
+    # Filter and validate only the canonical 16 joints.
+    valid_keypoints = {}
 
-    # Draw keypoint circles
-    for name, kp in keypoints.items():
-        if kp.get("visibility", 0.0) >= min_visibility:
-            cx, cy = int(kp["x"] * w), int(kp["y"] * h)
-            cv2.circle(image, (cx, cy), 5, point_color, -1, cv2.LINE_AA)
-            cv2.circle(image, (cx, cy), 6, (0, 0, 0), 1, cv2.LINE_AA)
+    for name in FITNESSVISION_JOINTS:
+        kp = keypoints.get(name)
+
+        if not isinstance(kp, dict):
+            continue
+
+        try:
+            x = float(kp["x"])
+            y = float(kp["y"])
+            visibility = float(kp.get("visibility", 0.0))
+
+            if not np.isfinite([x, y, visibility]).all():
+                continue
+
+            if visibility < min_visibility:
+                continue
+
+            if not (0.0 <= x <= 1.0 and 0.0 <= y <= 1.0):
+                continue
+
+            valid_keypoints[name] = {
+                "x": x,
+                "y": y,
+                "visibility": visibility,
+            }
+
+        except (KeyError, TypeError, ValueError):
+            continue
+
+    # Draw connections only between selected joints.
+    for pt1_name, pt2_name in connections:
+
+        kp1 = valid_keypoints.get(pt1_name)
+        kp2 = valid_keypoints.get(pt2_name)
+
+        if kp1 is None or kp2 is None:
+            continue
+
+        x1, y1 = int(kp1["x"] * w), int(kp1["y"] * h)
+        x2, y2 = int(kp2["x"] * w), int(kp2["y"] * h)
+
+        cv2.line(
+            image,
+            (x1, y1),
+            (x2, y2),
+            line_color,
+            2,
+            cv2.LINE_AA,
+        )
+
+    # Draw only the selected 16 joints.
+    for name in FITNESSVISION_JOINTS:
+
+        kp = valid_keypoints.get(name)
+
+        if kp is None:
+            continue
+
+        cx = int(kp["x"] * w)
+        cy = int(kp["y"] * h)
+
+        cv2.circle(
+            image,
+            (cx, cy),
+            5,
+            point_color,
+            -1,
+            cv2.LINE_AA,
+        )
+
+        cv2.circle(
+            image,
+            (cx, cy),
+            6,
+            (0, 0, 0),
+            1,
+            cv2.LINE_AA,
+        )
+
+        if show_labels:
+            cv2.putText(
+                image,
+                name,
+                (cx + 7, cy - 7),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.4,
+                (255, 255, 255),
+                1,
+                cv2.LINE_AA,
+            )
 
     return image
-
 
 def draw_feedback_banner(
     image: np.ndarray,
