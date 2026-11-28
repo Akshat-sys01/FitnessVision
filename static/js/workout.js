@@ -6,14 +6,6 @@
 
 class WorkoutSessionController {
   constructor(config) {
-    setTimeout(() => {
-        const test = new SpeechSynthesisUtterance(
-            "Fitness Vision audio test. Your audio is working."
-        );
-        test.lang = "en-US";
-        window.speechSynthesis.speak(test);
-    }, 1000);
-
     this.exerciseSlug = config.exerciseSlug || 'squat';
     this.sessionToken = config.sessionToken || 'default_session';
     this.useServerDetector = config.useServerDetector || false;
@@ -33,11 +25,19 @@ class WorkoutSessionController {
     this.statusTitleEl = document.getElementById('status-title');
     this.feedbackTextEl = document.getElementById('feedback-text');
 
+    // Speech & Voice Feedback
     this.lastSpokenFeedback = '';
     this.lastAnnouncedRep = 0;
     this.exerciseCompleted = false;
     this.speechEnabled = true;
 
+    if ('speechSynthesis' in window) {
+      setTimeout(() => {
+        const test = new SpeechSynthesisUtterance('Fitness Vision audio test. Your audio is working.');
+        test.lang = 'en-US';
+        window.speechSynthesis.speak(test);
+      }, 1000);
+    }
     this.primaryAngleValEl = document.getElementById('primary-angle-val');
     this.primaryAngleLabelEl = document.getElementById('primary-angle-label');
     this.torsoIncValEl = document.getElementById('torso-inc-val');
@@ -60,9 +60,6 @@ class WorkoutSessionController {
     this.timerInterval = null;
     this.elapsedSeconds = 0;
     this.latestRepCount = 0;
-
-    this.lastAnnouncedRep = 0;
-    this.exerciseCompleted = false;
 
     // Keypoint connections mapping for client rendering
     this.connections = [
@@ -306,19 +303,164 @@ class WorkoutSessionController {
     }
   }
 
-  drawSkeleton(landmarks) {
+  /**
+   * Converts detected landmarks or keypoint map into canonical 16 joints.
+   */
+  getCanonical16(landmarks) {
+    const mpIndices = {
+      right_ankle: 28,
+      right_knee: 26,
+      right_hip: 24,
+      left_hip: 23,
+      left_knee: 25,
+      left_ankle: 27,
+      right_wrist: 16,
+      right_elbow: 14,
+      right_shoulder: 12,
+      left_shoulder: 11,
+      left_elbow: 13,
+      left_wrist: 15,
+      nose: 0,
+    };
+
+    const canonical = {};
+
+    if (Array.isArray(landmarks)) {
+      for (const [name, idx] of Object.entries(mpIndices)) {
+        const pt = landmarks[idx];
+        if (pt) {
+          const vis = pt.visibility !== undefined ? pt.visibility : 1.0;
+          if (vis >= 0.45) {
+            canonical[name] = { x: pt.x, y: pt.y, visibility: vis };
+          }
+        }
+      }
+    } else if (landmarks && typeof landmarks === 'object') {
+      for (const [name, idx] of Object.entries(mpIndices)) {
+        const pt = landmarks[name] || landmarks[idx] || landmarks[String(idx)];
+        if (pt) {
+          const vis = pt.visibility !== undefined ? pt.visibility : (pt.score !== undefined ? pt.score : 1.0);
+          if (vis >= 0.45) {
+            canonical[name] = { x: pt.x, y: pt.y, visibility: vis };
+          }
+        }
+      }
+      if (!canonical.nose && (landmarks.nose || landmarks[0] || landmarks['0'])) {
+        const n = landmarks.nose || landmarks[0] || landmarks['0'];
+        const vis = n.visibility !== undefined ? n.visibility : 1.0;
+        if (vis >= 0.45) {
+          canonical.nose = { x: n.x, y: n.y, visibility: vis };
+        }
+      }
+    }
+
+    // Derive Joint 6: Pelvis (midpoint of left & right hips)
+    if (canonical.left_hip && canonical.right_hip) {
+      canonical.pelvis = {
+        x: (canonical.left_hip.x + canonical.right_hip.x) / 2,
+        y: (canonical.left_hip.y + canonical.right_hip.y) / 2,
+        visibility: Math.min(canonical.left_hip.visibility, canonical.right_hip.visibility),
+      };
+    }
+
+    // Derive Joint 7: Thorax (midpoint of left & right shoulders)
+    if (canonical.left_shoulder && canonical.right_shoulder) {
+      canonical.thorax = {
+        x: (canonical.left_shoulder.x + canonical.right_shoulder.x) / 2,
+        y: (canonical.left_shoulder.y + canonical.right_shoulder.y) / 2,
+        visibility: Math.min(canonical.left_shoulder.visibility, canonical.right_shoulder.visibility),
+      };
+    }
+
+    // Derive Joint 8: Upper Neck (midpoint between thorax and nose)
+    if (canonical.thorax && canonical.nose) {
+      canonical.upper_neck = {
+        x: (canonical.thorax.x + canonical.nose.x) / 2,
+        y: (canonical.thorax.y + canonical.nose.y) / 2,
+        visibility: Math.min(canonical.thorax.visibility, canonical.nose.visibility),
+      };
+    }
+
+    // Derive Joint 9: Head Top (approximate position above head extrapolated from nose and upper_neck)
+    if (canonical.nose && canonical.upper_neck) {
+      canonical.head_top = {
+        x: canonical.nose.x + 0.35 * (canonical.nose.x - canonical.upper_neck.x),
+        y: canonical.nose.y + 0.35 * (canonical.nose.y - canonical.upper_neck.y),
+        visibility: Math.min(canonical.nose.visibility, canonical.upper_neck.visibility),
+      };
+    } else if (canonical.nose) {
+      canonical.head_top = {
+        x: canonical.nose.x,
+        y: canonical.nose.y - 0.08,
+        visibility: canonical.nose.visibility,
+      };
+    }
+
+    return canonical;
+  }
+
+  /**
+   * Renders strictly the canonical 16 joints and connections on the canvas.
+   */
+  renderCanonicalSkeleton(canonical) {
+    if (!this.ctx || !this.canvasEl) return;
     const w = this.canvasEl.width;
     const h = this.canvasEl.height;
 
-    // Draw connection lines
+    // Canonical 16-joint list in exact required order
+    const canonicalJointOrder = [
+      'right_ankle',     // 0
+      'right_knee',      // 1
+      'right_hip',       // 2
+      'left_hip',        // 3
+      'left_knee',       // 4
+      'left_ankle',      // 5
+      'pelvis',          // 6
+      'thorax',          // 7
+      'upper_neck',      // 8
+      'head_top',        // 9
+      'right_wrist',     // 10
+      'right_elbow',     // 11
+      'right_shoulder',  // 12
+      'left_shoulder',   // 13
+      'left_elbow',      // 14
+      'left_wrist',      // 15
+    ];
+
+    // Canonical connections between the 16 joints
+    const connections = [
+      // Head and neck
+      ['head_top', 'upper_neck'],
+      ['upper_neck', 'thorax'],
+      // Torso
+      ['thorax', 'left_shoulder'],
+      ['thorax', 'right_shoulder'],
+      ['thorax', 'pelvis'],
+      ['pelvis', 'left_hip'],
+      ['pelvis', 'right_hip'],
+      // Left arm
+      ['left_shoulder', 'left_elbow'],
+      ['left_elbow', 'left_wrist'],
+      // Right arm
+      ['right_shoulder', 'right_elbow'],
+      ['right_elbow', 'right_wrist'],
+      // Left leg
+      ['left_hip', 'left_knee'],
+      ['left_knee', 'left_ankle'],
+      // Right leg
+      ['right_hip', 'right_knee'],
+      ['right_knee', 'right_ankle'],
+    ];
+
+    // 1. Draw connection lines
     this.ctx.lineWidth = 3;
     this.ctx.strokeStyle = '#00f59b';
     this.ctx.lineCap = 'round';
 
-    for (const [idx1, idx2] of this.connections) {
-      const p1 = landmarks[idx1];
-      const p2 = landmarks[idx2];
-      if (p1 && p2 && (p1.visibility || 1.0) > 0.45 && (p2.visibility || 1.0) > 0.45) {
+    for (const [j1, j2] of connections) {
+      const p1 = canonical[j1];
+      const p2 = canonical[j2];
+      if (p1 && p2 && p1.visibility >= 0.45 && p2.visibility >= 0.45) {
         this.ctx.beginPath();
         this.ctx.moveTo(p1.x * w, p1.y * h);
         this.ctx.lineTo(p2.x * w, p2.y * h);
@@ -326,11 +468,12 @@ class WorkoutSessionController {
       }
     }
 
-    // Draw joint dots
-    for (const lm of landmarks) {
-      if ((lm.visibility || 1.0) > 0.45) {
+    // 2. Draw circles for only the 16 canonical joints (NO face, fingers, or toes)
+    for (const name of canonicalJointOrder) {
+      const pt = canonical[name];
+      if (pt && pt.visibility >= 0.45) {
         this.ctx.beginPath();
-        this.ctx.arc(lm.x * w, lm.y * h, 5, 0, 2 * Math.PI);
+        this.ctx.arc(pt.x * w, pt.y * h, 5, 0, 2 * Math.PI);
         this.ctx.fillStyle = '#ffffff';
         this.ctx.fill();
         this.ctx.lineWidth = 2;
@@ -338,6 +481,11 @@ class WorkoutSessionController {
         this.ctx.stroke();
       }
     }
+  }
+
+  drawSkeleton(landmarks) {
+    const canonical = this.getCanonical16(landmarks);
+    this.renderCanonicalSkeleton(canonical);
   }
 
   async sendKeypointsToServer(landmarks) {
@@ -410,48 +558,8 @@ class WorkoutSessionController {
   }
 
   drawKeypointDict(keypointDict) {
-    const w = this.canvasEl.width;
-    const h = this.canvasEl.height;
-
-    // Draw lines
-    const connPairs = [
-      ["left_shoulder", "right_shoulder"],
-      ["left_shoulder", "left_hip"],
-      ["right_shoulder", "right_hip"],
-      ["left_hip", "right_hip"],
-      ["left_shoulder", "left_elbow"],
-      ["left_elbow", "left_wrist"],
-      ["right_shoulder", "right_elbow"],
-      ["right_elbow", "right_wrist"],
-      ["left_hip", "left_knee"],
-      ["left_knee", "left_ankle"],
-      ["right_hip", "right_knee"],
-      ["right_knee", "right_ankle"],
-    ];
-
-    this.ctx.lineWidth = 3;
-    this.ctx.strokeStyle = '#00f59b';
-    for (const [k1, k2] of connPairs) {
-      const p1 = keypointDict[k1];
-      const p2 = keypointDict[k2];
-      if (p1 && p2 && (p1.visibility || 1) > 0.45 && (p2.visibility || 1) > 0.45) {
-        this.ctx.beginPath();
-        this.ctx.moveTo(p1.x * w, p1.y * h);
-        this.ctx.lineTo(p2.x * w, p2.y * h);
-        this.ctx.stroke();
-      }
-    }
-
-    for (const [k, p] of Object.entries(keypointDict)) {
-      if ((p.visibility || 1) > 0.45) {
-        this.ctx.beginPath();
-        this.ctx.arc(p.x * w, p.y * h, 5, 0, 2 * Math.PI);
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.fill();
-        this.ctx.strokeStyle = '#10b981';
-        this.ctx.stroke();
-      }
-    }
+    const canonical = this.getCanonical16(keypointDict);
+    this.renderCanonicalSkeleton(canonical);
   }
 
   updateHUD(data) {
@@ -512,35 +620,31 @@ class WorkoutSessionController {
 
   announceRepProgress(repCount) {
     if (repCount <= this.lastAnnouncedRep) return;
-
     this.lastAnnouncedRep = repCount;
 
     let message = `${repCount} repetitions completed.`;
-
-    if (repCount === 5) {
-        message = "Halfway there! Five more repetitions to go!";
+    if (repCount === 1) {
+      message = 'First repetition completed. Good start!';
+    } else if (repCount === 5) {
+      message = 'Halfway there! Five more repetitions to go!';
     } else if (repCount === 9) {
-        message = "Just one more repetition! You can do it!";
+      message = 'Just one more repetition! You can do it!';
     } else if (repCount >= 10 && !this.exerciseCompleted) {
-        this.exerciseCompleted = true;
-        message = "Excellent! All 10 repetitions completed. Exercise complete. Great work!";
+      this.exerciseCompleted = true;
+      message = 'Excellent! All 10 repetitions completed. Exercise complete. Great work!';
     } else if (repCount > 10) {
-        return;
-    } else if (repCount === 1) {
-        message = "First repetition completed. Good start!";
+      return;
     }
 
-    if ("speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-
-        const speech = new SpeechSynthesisUtterance(message);
-        speech.lang = "en-US";
-        speech.rate = 1;
-        speech.pitch = 1;
-
-        window.speechSynthesis.speak(speech);
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const speech = new SpeechSynthesisUtterance(message);
+      speech.lang = 'en-US';
+      speech.rate = 1;
+      speech.pitch = 1;
+      window.speechSynthesis.speak(speech);
     }
-  }  
+  }
 
   updateStatusBanner(statusClass, title, message) {
     if (!this.statusBannerEl) return;
@@ -548,23 +652,20 @@ class WorkoutSessionController {
     if (this.statusTitleEl) this.statusTitleEl.textContent = title;
     if (this.feedbackTextEl) this.feedbackTextEl.textContent = message;
 
-      // Speak only when the feedback message changes
+    // Speak only when the feedback message changes
     if (
-        this.speechEnabled &&
-        message &&
-        message !== this.lastSpokenFeedback &&
-        'speechSynthesis' in window
+      this.speechEnabled &&
+      message &&
+      message !== this.lastSpokenFeedback &&
+      'speechSynthesis' in window
     ) {
-        this.lastSpokenFeedback = message;
-
-        window.speechSynthesis.cancel();
-
-        const speech = new SpeechSynthesisUtterance(message);
-        speech.lang = 'en-US';
-        speech.rate = 1;
-        speech.pitch = 1;
-
-        window.speechSynthesis.speak(speech);
+      this.lastSpokenFeedback = message;
+      window.speechSynthesis.cancel();
+      const speech = new SpeechSynthesisUtterance(message);
+      speech.lang = 'en-US';
+      speech.rate = 1;
+      speech.pitch = 1;
+      window.speechSynthesis.speak(speech);
     }
 
     const iconEl = this.statusBannerEl.querySelector('.status-icon');
