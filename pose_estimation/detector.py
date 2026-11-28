@@ -15,7 +15,7 @@ except ImportError:
     mp = None
     cv2 = None
 
-from .keypoints import INDEX_TO_LANDMARK
+from .keypoints import parse_keypoints
 
 
 class PoseDetector:
@@ -71,16 +71,8 @@ class PoseDetector:
         if not results.pose_landmarks:
             return {"detected": False, "keypoints": {}, "raw_landmarks": None}
 
-        keypoints: Dict[str, Dict[str, float]] = {}
-        for idx, lm in enumerate(results.pose_landmarks.landmark):
-            if idx in INDEX_TO_LANDMARK:
-                name = INDEX_TO_LANDMARK[idx]
-                keypoints[name] = {
-                    "x": float(lm.x),
-                    "y": float(lm.y),
-                    "z": float(lm.z),
-                    "visibility": float(getattr(lm, "visibility", 1.0)),
-                }
+        # Convert detected landmarks directly to canonical 16-joint format
+        keypoints = parse_keypoints(results.pose_landmarks.landmark)
 
         return {
             "detected": True,
