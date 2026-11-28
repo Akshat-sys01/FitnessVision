@@ -64,6 +64,30 @@ ERROR_DEFINITIONS = {
         severity="low",
         category="range_of_motion",
     ),
+    "HIP_ANGLE_DEVIATION": FormError(
+        code="HIP_ANGLE_DEVIATION",
+        message="Adjust your hip position.",
+        severity="medium",
+        category="alignment",
+    ),
+    "THIGH_POSITION_DEVIATION": FormError(
+        code="THIGH_POSITION_DEVIATION",
+        message="Check your thigh position.",
+        severity="medium",
+        category="alignment",
+    ),
+    "KNEE_FOOT_ALIGNMENT": FormError(
+        code="KNEE_FOOT_ALIGNMENT",
+        message="Check your knee and foot alignment.",
+        severity="medium",
+        category="alignment",
+    ),
+    "FOOT_ORIENTATION_DEVIATION": FormError(
+        code="FOOT_ORIENTATION_DEVIATION",
+        message="Check your foot positioning.",
+        severity="low",
+        category="alignment",
+    ),
     # Bicep curl errors
     "EXCESSIVE_ELBOW_DRIFT": FormError(
         code="EXCESSIVE_ELBOW_DRIFT",

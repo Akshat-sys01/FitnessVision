@@ -43,6 +43,9 @@ class SquatRepetitionCounter(BaseRepetitionCounter):
     """
     Temporal state machine for squat repetitions:
     START -> STANDING -> DESCENDING -> BOTTOM -> ASCENDING -> STANDING (Rep +1)
+
+    Enforces hysteresis, minimum consecutive frames per phase, incomplete
+    repetition rejection, and unreliable-landmark protection.
     """
 
     def __init__(
@@ -52,12 +55,51 @@ class SquatRepetitionCounter(BaseRepetitionCounter):
         bottom_depth: float = 100.0,
         shallow_cutoff: float = 115.0,
         smoothing_window: int = 4,
+        return_to_standing_angle: Optional[float] = None,
+        bottom_hysteresis: float = 15.0,
+        reversal_hysteresis: float = 12.0,
+        min_standing_frames: int = 1,
+        min_descending_frames: int = 1,
+        min_bottom_frames: int = 2,
+        min_ascending_frames: int = 1,
+        max_lost_frames: int = 25,
     ):
         super().__init__(smoothing_window=smoothing_window)
         self.standing_angle = standing_angle
+        self.return_to_standing_angle = (
+            return_to_standing_angle if return_to_standing_angle is not None else standing_angle
+        )
         self.descend_trigger = descend_trigger
         self.bottom_depth = bottom_depth
         self.shallow_cutoff = shallow_cutoff
+        self.bottom_hysteresis = bottom_hysteresis
+        self.reversal_hysteresis = reversal_hysteresis
+        self.min_standing_frames = max(1, int(min_standing_frames))
+        self.min_descending_frames = max(1, int(min_descending_frames))
+        self.min_bottom_frames = max(1, int(min_bottom_frames))
+        self.min_ascending_frames = max(1, int(min_ascending_frames))
+        self.max_lost_frames = max(1, int(max_lost_frames))
+
+        self._standing_streak: int = 0
+        self._descending_streak: int = 0
+        self._bottom_streak: int = 0
+        self._ascending_streak: int = 0
+        self._return_standing_streak: int = 0
+
+    def reset(self):
+        super().reset()
+        self._standing_streak = 0
+        self._descending_streak = 0
+        self._bottom_streak = 0
+        self._ascending_streak = 0
+        self._return_standing_streak = 0
+
+    def _reset_streaks(self):
+        self._standing_streak = 0
+        self._descending_streak = 0
+        self._bottom_streak = 0
+        self._ascending_streak = 0
+        self._return_standing_streak = 0
 
     def update(
         self,
@@ -79,10 +121,11 @@ class SquatRepetitionCounter(BaseRepetitionCounter):
 
         if not tracking_valid or knee_angle is None:
             self.consecutive_lost_frames += 1
-            if self.consecutive_lost_frames > 25:
+            if self.consecutive_lost_frames > self.max_lost_frames:
                 # Reset to start state if user leaves view for extended period
                 self.current_phase = "start"
                 self.min_cycle_angle = None
+                self._reset_streaks()
             return {
                 "rep_count": self.rep_count,
                 "phase": self.current_phase,
@@ -104,39 +147,66 @@ class SquatRepetitionCounter(BaseRepetitionCounter):
         if self.min_cycle_angle is None or angle < self.min_cycle_angle:
             self.min_cycle_angle = angle
 
-        # State Transitions
+        # State Transitions with configurable minimum frame durations and hysteresis
         if self.current_phase == "start":
             if angle >= self.standing_angle:
-                self.current_phase = "standing"
-                self.min_cycle_angle = angle
+                self._standing_streak += 1
+                if self._standing_streak >= self.min_standing_frames:
+                    self.current_phase = "standing"
+                    self.min_cycle_angle = angle
+                    self._reset_streaks()
+            else:
+                self._standing_streak = 0
 
         elif self.current_phase == "standing":
             if angle < self.descend_trigger:
-                self.current_phase = "descending"
-                self.min_cycle_angle = angle
+                self._descending_streak += 1
+                if self._descending_streak >= self.min_descending_frames:
+                    self.current_phase = "descending"
+                    self.min_cycle_angle = angle
+                    self._reset_streaks()
+            else:
+                self._descending_streak = 0
 
         elif self.current_phase == "descending":
             if angle <= self.bottom_depth:
-                self.current_phase = "bottom"
-            elif angle > (self.min_cycle_angle + 12.0) and angle > self.shallow_cutoff:
-                # User reversed upward before hitting acceptable squat depth
-                self.current_phase = "standing"
-                self.incomplete_reps += 1
-                incomplete_detected = True
-                self.min_cycle_angle = angle
+                self._bottom_streak += 1
+                self._return_standing_streak = 0
+                if self._bottom_streak >= self.min_bottom_frames:
+                    self.current_phase = "bottom"
+                    self._reset_streaks()
+            else:
+                self._bottom_streak = 0
+                if angle > (self.min_cycle_angle + self.reversal_hysteresis) and angle > self.shallow_cutoff:
+                    # User reversed upward before hitting acceptable squat depth
+                    self.current_phase = "standing"
+                    self.incomplete_reps += 1
+                    incomplete_detected = True
+                    self.min_cycle_angle = angle
+                    self._reset_streaks()
 
         elif self.current_phase == "bottom":
             # Rising upward out of the bottom position
-            if angle > (self.bottom_depth + 15.0):
-                self.current_phase = "ascending"
+            if angle > (self.bottom_depth + self.bottom_hysteresis):
+                self._ascending_streak += 1
+                if self._ascending_streak >= self.min_ascending_frames:
+                    self.current_phase = "ascending"
+                    self._reset_streaks()
+            else:
+                self._ascending_streak = 0
 
         elif self.current_phase == "ascending":
-            if angle >= self.standing_angle:
-                # Successfully completed a full rep cycle!
-                self.rep_count += 1
-                new_rep_completed = True
-                self.current_phase = "standing"
-                self.min_cycle_angle = angle
+            if angle >= self.return_to_standing_angle:
+                self._return_standing_streak += 1
+                if self._return_standing_streak >= self.min_standing_frames:
+                    # Successfully completed a full rep cycle!
+                    self.rep_count += 1
+                    new_rep_completed = True
+                    self.current_phase = "standing"
+                    self.min_cycle_angle = angle
+                    self._reset_streaks()
+            else:
+                self._return_standing_streak = 0
 
         return {
             "rep_count": self.rep_count,

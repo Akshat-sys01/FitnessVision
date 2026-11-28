@@ -92,6 +92,32 @@
       </div>
     </div>
 
+    {% if exercise.slug == 'squat' %}
+    <!-- Squat Analysis Configuration -->
+    <div class="card" style="padding: 1rem 1.25rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+          <label for="squat-camera-view" style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 0.25rem;">Camera View</label>
+          <select id="squat-camera-view" style="background: rgba(0,0,0,0.4); color: #fff; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.35rem 0.6rem; font-size: 0.85rem;">
+            <option value="side" selected>Side View</option>
+            <option value="front">Front View</option>
+          </select>
+        </div>
+        <div>
+          <label for="squat-target-depth" style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 0.25rem;">Target Depth</label>
+          <select id="squat-target-depth" style="background: rgba(0,0,0,0.4); color: #fff; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.35rem 0.6rem; font-size: 0.85rem;">
+            <option value="deep" selected>Deep Squat</option>
+            <option value="half">Half Squat</option>
+          </select>
+        </div>
+        <label style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--text-secondary); cursor: pointer; margin-top: 1rem;">
+          <input type="checkbox" id="squat-debug-toggle">
+          Debug Mode
+        </label>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Real-time Joint Biomechanics Gauges -->
     <div class="card" style="padding: 1.25rem;">
       <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem;">
@@ -105,18 +131,24 @@
           <div id="primary-angle-val" class="metric-value">--</div>
         </div>
         <div class="metric-item">
-          <div class="metric-name">Torso Tilt</div>
-          <div id="torso-inc-val" class="metric-value">--</div>
+          <div class="metric-name">{% if exercise.slug == 'squat' %}Hip Angle{% else %}Torso Tilt{% endif %}</div>
+          <div id="{% if exercise.slug == 'squat' %}hip-angle-val{% else %}torso-inc-val{% endif %}" class="metric-value">--</div>
         </div>
         <div class="metric-item">
-          <div class="metric-name">L/R Asymmetry</div>
-          <div id="symmetry-val" class="metric-value">--</div>
+          <div class="metric-name">{% if exercise.slug == 'squat' %}Squat Depth{% else %}L/R Asymmetry{% endif %}</div>
+          <div id="{% if exercise.slug == 'squat' %}depth-class-val{% else %}symmetry-val{% endif %}" class="metric-value" style="font-size: 1.05rem;">--</div>
         </div>
         <div class="metric-item">
           <div class="metric-name">Tracking Status</div>
           <div id="tracking-status-val" class="metric-value" style="font-size: 1.1rem; color: var(--accent-lime);">ACTIVE</div>
         </div>
       </div>
+      {% if exercise.slug == 'squat' %}
+      <div id="squat-debug-panel" style="display: none; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color); font-size: 0.78rem; color: var(--text-secondary); font-family: monospace;">
+        <div id="debug-angles-line">L/R Knee: -- | L/R Hip: -- | Trunk: --</div>
+        <div id="debug-rules-line" style="margin-top: 0.35rem;">Rules: --</div>
+      </div>
+      {% endif %}
     </div>
 
     <!-- Session Duration Bar -->

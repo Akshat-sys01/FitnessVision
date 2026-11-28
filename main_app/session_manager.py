@@ -26,13 +26,13 @@ class ActiveWorkoutState:
         # Instantiate exercise-specific analyzer
         if self.exercise_slug == "squat":
             self.analyzer = SquatAnalyzer()
-            self.counter: BaseRepetitionCounter = SquatRepetitionCounter()
+            self.counter: BaseRepetitionCounter = self.analyzer.counter
         elif self.exercise_slug in ("bicep_curl", "curl"):
             self.analyzer = BicepCurlAnalyzer()
             self.counter = BicepCurlRepetitionCounter()
         else:
             self.analyzer = SquatAnalyzer()
-            self.counter = SquatRepetitionCounter()
+            self.counter = self.analyzer.counter
 
         # Cumulative statistics
         self.total_frames = 0
@@ -52,7 +52,10 @@ class ActiveWorkoutState:
                 self.error_details[code] = msg
 
     def reset(self):
-        self.counter.reset()
+        if hasattr(self.analyzer, "reset"):
+            self.analyzer.reset()
+        else:
+            self.counter.reset()
         self.total_frames = 0
         self.error_counts.clear()
         self.error_details.clear()

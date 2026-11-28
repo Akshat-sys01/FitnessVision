@@ -15,7 +15,7 @@ except ImportError:
     mp = None
     cv2 = None
 
-from .keypoints import INDEX_TO_LANDMARK
+from .keypoints import INDEX_TO_LANDMARK, sanitize_keypoint
 
 
 class PoseDetector:
@@ -75,17 +75,17 @@ class PoseDetector:
         for idx, lm in enumerate(results.pose_landmarks.landmark):
             if idx in INDEX_TO_LANDMARK:
                 name = INDEX_TO_LANDMARK[idx]
-                keypoints[name] = {
-                    "x": float(lm.x),
-                    "y": float(lm.y),
-                    "z": float(lm.z),
-                    "visibility": float(getattr(lm, "visibility", 1.0)),
-                }
+                sanitized = sanitize_keypoint(lm)
+                if sanitized is not None:
+                    keypoints[name] = sanitized
 
+        h, w = image_bgr.shape[:2]
         return {
             "detected": True,
             "keypoints": keypoints,
             "raw_landmarks": results.pose_landmarks,
+            "image_width": int(w),
+            "image_height": int(h),
         }
 
     def close(self):

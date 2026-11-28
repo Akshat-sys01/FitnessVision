@@ -86,6 +86,95 @@ def results_view(request):
     })
 
 
+def _run_exercise_analysis(
+    state,
+    exercise_slug: str,
+    keypoints: Dict[str, Dict[str, float]],
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Shared analysis pipeline for both /api/analyze-pose/ and /api/analyze-frame/.
+    """
+    image_width = payload.get("image_width")
+    image_height = payload.get("image_height")
+
+    if exercise_slug == "squat":
+        state.analyzer.update_settings(
+            camera_view=payload.get("camera_view"),
+            target_depth_mode=payload.get("target_depth") or payload.get("target_depth_mode"),
+            debug_mode=payload.get("debug"),
+        )
+        analysis_res = state.analyzer.analyze(
+            keypoints,
+            image_width=image_width,
+            image_height=image_height,
+        )
+        tracking_valid = analysis_res.get("tracking_valid", False)
+        detected_errors = analysis_res.get("detected_errors", [])
+        rep_count = analysis_res.get("rep_count", 0)
+        movement_state = analysis_res.get("movement_state", "START")
+        current_phase = movement_state.lower()
+        state.rep_count = rep_count
+
+        if detected_errors:
+            state.record_errors(detected_errors)
+
+        return {
+            "exercise": exercise_slug,
+            "repetition_count": rep_count,
+            "movement_phase": current_phase,
+            "movement_state": movement_state,
+            "overall_status": analysis_res.get("overall_status"),
+            "depth_classification": analysis_res.get("depth_classification"),
+            "stance_classification": analysis_res.get("stance_classification"),
+            "camera_view": analysis_res.get("camera_view"),
+            "target_depth_mode": analysis_res.get("target_depth_mode"),
+            "posture_status": analysis_res.get("legacy_posture_status", "warning"),
+            "detected_errors": [e.to_dict() for e in detected_errors],
+            "feedback": analysis_res.get("primary_feedback", ""),
+            "feedback_messages": analysis_res.get("feedback", []),
+            "rules": analysis_res.get("rules", {}),
+            "landmark_reliability": analysis_res.get("landmark_reliability", {}),
+            "tracking_status": "valid" if tracking_valid else "invalid",
+            "measurements": analysis_res.get("measurements", {}),
+        }
+
+    # Default path for other exercises (e.g., bicep_curl)
+    analysis_res = state.analyzer.analyze_frame(keypoints)
+    tracking_valid = analysis_res.get("tracking_valid", False)
+    missing_joints = analysis_res.get("missing_joints", [])
+    measurements = analysis_res.get("measurements", {})
+    detected_errors = analysis_res.get("detected_errors", [])
+
+    primary_angle = analysis_res.get("primary_elbow_angle")
+    counter_res = state.counter.update(primary_angle, tracking_valid=tracking_valid)
+    rep_count = counter_res.get("rep_count", 0)
+    current_phase = counter_res.get("phase", "start")
+    state.rep_count = rep_count
+
+    if detected_errors:
+        state.record_errors(detected_errors)
+
+    feedback_data = generate_feedback(
+        tracking_valid=tracking_valid,
+        missing_joints=missing_joints,
+        detected_errors=detected_errors,
+        phase=current_phase,
+        exercise_name=exercise_slug,
+    )
+
+    return {
+        "exercise": exercise_slug,
+        "repetition_count": rep_count,
+        "movement_phase": current_phase,
+        "posture_status": feedback_data["status"],
+        "detected_errors": feedback_data["error_list"],
+        "feedback": feedback_data["feedback"],
+        "tracking_status": "valid" if tracking_valid else "invalid",
+        "measurements": measurements,
+    }
+
+
 @csrf_exempt
 def api_analyze_pose(request):
     """
@@ -115,47 +204,9 @@ def api_analyze_pose(request):
     state = session_manager.get_or_create(session_token, exercise_slug)
     state.total_frames += 1
 
-    # 1. Exercise analysis & geometric features
-    analysis_res = state.analyzer.analyze_frame(keypoints)
-    tracking_valid = analysis_res.get("tracking_valid", False)
-    missing_joints = analysis_res.get("missing_joints", [])
-    measurements = analysis_res.get("measurements", {})
-    detected_errors = analysis_res.get("detected_errors", [])
-
-    # 2. Temporal Repetition Counter Update
-    if exercise_slug == "squat":
-        primary_angle = analysis_res.get("primary_knee_angle")
-    else:
-        primary_angle = analysis_res.get("primary_elbow_angle")
-
-    counter_res = state.counter.update(primary_angle, tracking_valid=tracking_valid)
-    rep_count = counter_res.get("rep_count", 0)
-    current_phase = counter_res.get("phase", "start")
-    state.rep_count = rep_count
-
-    if detected_errors:
-        state.record_errors(detected_errors)
-
-    # 3. Corrective Feedback Generation
-    feedback_data = generate_feedback(
-        tracking_valid=tracking_valid,
-        missing_joints=missing_joints,
-        detected_errors=detected_errors,
-        phase=current_phase,
-        exercise_name=exercise_slug,
-    )
-
-    return JsonResponse({
-        "success": True,
-        "exercise": exercise_slug,
-        "repetition_count": rep_count,
-        "movement_phase": current_phase,
-        "posture_status": feedback_data["status"],
-        "detected_errors": feedback_data["error_list"],
-        "feedback": feedback_data["feedback"],
-        "tracking_status": "valid" if tracking_valid else "invalid",
-        "measurements": measurements,
-    })
+    response_payload = _run_exercise_analysis(state, exercise_slug, keypoints, data)
+    response_payload["success"] = True
+    return JsonResponse(response_payload)
 
 
 @csrf_exempt
@@ -196,54 +247,22 @@ def api_analyze_frame(request):
     detector = get_pose_detector()
     det_res = detector.process_frame(frame_bgr)
 
-    # Route through keypoint analysis pipeline
-    data["keypoints"] = det_res["keypoints"]
-    exercise_slug = data.get("exercise", "squat")
-    session_token = data.get("session_token", "default_session")
+    exercise_slug = data.get("exercise", "squat").lower().strip()
+    if not get_exercise(exercise_slug):
+        return JsonResponse({"success": False, "error": f"Unsupported or missing exercise: '{exercise_slug}'"}, status=400)
+
+    session_token = data.get("session_token") or request.session.get("workout_session_token") or "default_session"
+    data.setdefault("image_width", det_res.get("image_width", frame_bgr.shape[1]))
+    data.setdefault("image_height", det_res.get("image_height", frame_bgr.shape[0]))
 
     state = session_manager.get_or_create(session_token, exercise_slug)
     state.total_frames += 1
 
-    analysis_res = state.analyzer.analyze_frame(det_res["keypoints"])
-    tracking_valid = analysis_res.get("tracking_valid", False)
-    missing_joints = analysis_res.get("missing_joints", [])
-    measurements = analysis_res.get("measurements", {})
-    detected_errors = analysis_res.get("detected_errors", [])
-
-    primary_angle = (
-        analysis_res.get("primary_knee_angle")
-        if exercise_slug == "squat"
-        else analysis_res.get("primary_elbow_angle")
-    )
-    counter_res = state.counter.update(primary_angle, tracking_valid=tracking_valid)
-    rep_count = counter_res.get("rep_count", 0)
-    current_phase = counter_res.get("phase", "start")
-    state.rep_count = rep_count
-
-    if detected_errors:
-        state.record_errors(detected_errors)
-
-    feedback_data = generate_feedback(
-        tracking_valid=tracking_valid,
-        missing_joints=missing_joints,
-        detected_errors=detected_errors,
-        phase=current_phase,
-        exercise_name=exercise_slug,
-    )
-
-    return JsonResponse({
-        "success": True,
-        "pose_detected": det_res["detected"],
-        "keypoints": det_res["keypoints"],
-        "exercise": exercise_slug,
-        "repetition_count": rep_count,
-        "movement_phase": current_phase,
-        "posture_status": feedback_data["status"],
-        "detected_errors": feedback_data["error_list"],
-        "feedback": feedback_data["feedback"],
-        "tracking_status": "valid" if tracking_valid else "invalid",
-        "measurements": measurements,
-    })
+    response_payload = _run_exercise_analysis(state, exercise_slug, det_res["keypoints"], data)
+    response_payload["success"] = True
+    response_payload["pose_detected"] = det_res["detected"]
+    response_payload["keypoints"] = det_res["keypoints"]
+    return JsonResponse(response_payload)
 
 
 @csrf_exempt

@@ -28,7 +28,17 @@ class WorkoutSessionController {
     this.primaryAngleLabelEl = document.getElementById('primary-angle-label');
     this.torsoIncValEl = document.getElementById('torso-inc-val');
     this.symmetryValEl = document.getElementById('symmetry-val');
+    this.hipAngleValEl = document.getElementById('hip-angle-val');
+    this.depthClassValEl = document.getElementById('depth-class-val');
+    this.trackingStatusValEl = document.getElementById('tracking-status-val');
+    this.cameraViewSelect = document.getElementById('squat-camera-view');
+    this.targetDepthSelect = document.getElementById('squat-target-depth');
+    this.debugToggle = document.getElementById('squat-debug-toggle');
+    this.debugPanelEl = document.getElementById('squat-debug-panel');
+    this.debugAnglesLineEl = document.getElementById('debug-angles-line');
+    this.debugRulesLineEl = document.getElementById('debug-rules-line');
     this.timerValEl = document.getElementById('session-timer-val');
+    this.latestAnalysisData = null;
 
     // Controls
     this.btnStart = document.getElementById('btn-start-workout');
@@ -88,6 +98,11 @@ class WorkoutSessionController {
     if (this.btnPause) this.btnPause.addEventListener('click', () => this.pauseWorkout());
     if (this.btnResume) this.btnResume.addEventListener('click', () => this.resumeWorkout());
     if (this.btnEnd) this.btnEnd.addEventListener('click', () => this.endWorkout());
+    if (this.debugToggle && this.debugPanelEl) {
+      this.debugToggle.addEventListener('change', () => {
+        this.debugPanelEl.style.display = this.debugToggle.checked ? 'block' : 'none';
+      });
+    }
   }
 
   onCameraStatus(status, message) {
@@ -280,12 +295,44 @@ class WorkoutSessionController {
 
     // Render skeleton
     this.drawSkeleton(results.poseLandmarks);
+    if (this.debugToggle && this.debugToggle.checked && this.latestAnalysisData) {
+      this.drawDebugAnnotations(results.poseLandmarks, this.latestAnalysisData);
+    }
 
     // Throttle server posture analysis calls
     const now = Date.now();
     if (now - this.lastApiCallTime >= this.apiThrottleMs) {
       this.lastApiCallTime = now;
       this.sendKeypointsToServer(results.poseLandmarks);
+    }
+  }
+
+  drawDebugAnnotations(landmarks, analysisData) {
+    if (!this.ctx || !this.canvasEl) return;
+    const w = this.canvasEl.width;
+    const h = this.canvasEl.height;
+    const m = analysisData.measurements || {};
+    const pairs = [
+      [25, m.left_knee_angle, 'LK'],
+      [26, m.right_knee_angle, 'RK'],
+      [23, m.left_hip_angle, 'LH'],
+      [24, m.right_hip_angle, 'RH'],
+    ];
+
+    this.ctx.font = 'bold 13px monospace';
+    this.ctx.fillStyle = '#38bdf8';
+    for (const [idx, val, prefix] of pairs) {
+      const lm = landmarks[idx];
+      if (lm && val !== null && val !== undefined && (lm.visibility || 1.0) > 0.45) {
+        const x = lm.x * w;
+        const y = lm.y * h;
+        // Un-mirror text because #pose-canvas has CSS scaleX(-1)
+        this.ctx.save();
+        this.ctx.translate(x, y - 10);
+        this.ctx.scale(-1, 1);
+        this.ctx.fillText(`${prefix}:${val}°`, 0, 0);
+        this.ctx.restore();
+      }
     }
   }
 
@@ -338,14 +385,21 @@ class WorkoutSessionController {
     }
 
     try {
+      const payload = {
+        session_token: this.sessionToken,
+        exercise: this.exerciseSlug,
+        keypoints: keypointDict,
+        image_width: this.canvasEl ? this.canvasEl.width : null,
+        image_height: this.canvasEl ? this.canvasEl.height : null,
+      };
+      if (this.cameraViewSelect) payload.camera_view = this.cameraViewSelect.value;
+      if (this.targetDepthSelect) payload.target_depth = this.targetDepthSelect.value;
+      if (this.debugToggle) payload.debug = this.debugToggle.checked;
+
       const resp = await fetch('/api/analyze-pose/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_token: this.sessionToken,
-          exercise: this.exerciseSlug,
-          keypoints: keypointDict,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await resp.json();
@@ -367,14 +421,19 @@ class WorkoutSessionController {
     const dataUrl = tempCanvas.toDataURL('image/jpeg', 0.65);
 
     try {
+      const payload = {
+        session_token: this.sessionToken,
+        exercise: this.exerciseSlug,
+        image: dataUrl,
+      };
+      if (this.cameraViewSelect) payload.camera_view = this.cameraViewSelect.value;
+      if (this.targetDepthSelect) payload.target_depth = this.targetDepthSelect.value;
+      if (this.debugToggle) payload.debug = this.debugToggle.checked;
+
       const resp = await fetch('/api/analyze-frame/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_token: this.sessionToken,
-          exercise: this.exerciseSlug,
-          image: dataUrl,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await resp.json();
@@ -438,6 +497,7 @@ class WorkoutSessionController {
   }
 
   updateHUD(data) {
+    this.latestAnalysisData = data;
     // 1. Repetition counter with bump effect
     const count = data.repetition_count || 0;
     if (count !== this.latestRepCount) {
@@ -463,6 +523,12 @@ class WorkoutSessionController {
 
     this.updateStatusBanner(status, statusTitle, feedback);
 
+    if (this.trackingStatusValEl) {
+      const valid = data.tracking_status === 'valid';
+      this.trackingStatusValEl.textContent = valid ? 'ACTIVE' : 'LOW VIS';
+      this.trackingStatusValEl.style.color = valid ? 'var(--accent-lime)' : 'var(--status-warning)';
+    }
+
     // 4. Live Measurements
     const m = data.measurements || {};
     if (this.exerciseSlug === 'squat') {
@@ -471,11 +537,23 @@ class WorkoutSessionController {
         this.primaryAngleValEl.textContent = val !== null && val !== undefined ? `${val}°` : '--';
       }
       if (this.primaryAngleLabelEl) this.primaryAngleLabelEl.textContent = 'Knee Angle';
-      if (this.torsoIncValEl) {
-        this.torsoIncValEl.textContent = m.torso_inclination !== null && m.torso_inclination !== undefined ? `${m.torso_inclination}°` : '--';
+      if (this.hipAngleValEl) {
+        const hipVal = m.average_hip_angle ?? m.left_hip_angle ?? m.right_hip_angle;
+        this.hipAngleValEl.textContent = hipVal !== null && hipVal !== undefined ? `${hipVal}°` : '--';
       }
-      if (this.symmetryValEl) {
-        this.symmetryValEl.textContent = m.knee_symmetry_diff !== null && m.knee_symmetry_diff !== undefined ? `${m.knee_symmetry_diff}°` : '--';
+      if (this.depthClassValEl) {
+        this.depthClassValEl.textContent = data.depth_classification || '--';
+      }
+      if (this.debugToggle && this.debugToggle.checked && this.debugAnglesLineEl && this.debugRulesLineEl) {
+        this.debugAnglesLineEl.textContent =
+          `L/R Knee: ${m.left_knee_angle ?? '--'}° / ${m.right_knee_angle ?? '--'}° | ` +
+          `L/R Hip: ${m.left_hip_angle ?? '--'}° / ${m.right_hip_angle ?? '--'}° | ` +
+          `Trunk: ${m.trunk_inclination ?? '--'}°`;
+        const rules = data.rules || {};
+        const ruleText = Object.entries(rules)
+          .map(([k, v]) => `${k}:${v.status}`)
+          .join(' | ');
+        this.debugRulesLineEl.textContent = ruleText || 'Rules: --';
       }
     } else {
       if (this.primaryAngleValEl) {
